@@ -74,11 +74,25 @@ const typeDefs = `
        comments: [Comment]
     }
     type Mutation {
-        createUser(name: String!, email: String!, age: Int): User!
-        createPost(title: String!
-            body: String!
-            published: Boolean!
-            author: User!): Post!
+        createUser(user: CreateUserInput): User!
+        createPost(post: CreatePostInput): Post!
+        createComment(comment: CreateCommentInput): Comment!
+    }
+    input CreateUserInput {
+        name: String!
+        email: String!
+        age: Int
+    }
+    input CreatePostInput {
+        title: String!
+        body: String!
+        published: Boolean!
+        author: ID!
+    }
+    input CreateCommentInput {
+        text: String!
+        postId: ID!
+        authorId: ID!
     }
     type User {
         id: ID!
@@ -145,17 +159,40 @@ const resolvers = {
     },
     Mutation: {
         createUser(parent, args, ctx, info) {
-           const emailTaken = users.some((user) => user.email === args.email);
+            console.log(args);
+           const emailTaken = users.some((user) => user.email === args.user.email);
            if(emailTaken) throw new Error('Email is Taken');
            const id  =  uuid();
            const addedUser  =  {
-            email: args.email,
-            name: args.name,
-            age: args.age,
-            id
+               ...args.user,
+                id
            };
            users.push(addedUser);
            return addedUser;
+        },
+        createPost(parent, args, ctx, info) {
+            const userExits = users.some((user) => user.id === args.post.author);
+            if(!userExits) throw new Error('user not exist');
+            const id  =  uuid();
+            const addedPost  =  {
+                id,
+                ...args.post
+            };
+            posts.push(addedPost);
+            return addedPost;
+        },
+        createComment(parent, args, ctx, info) {
+            const userExits = users.some((user) => user.id === args.comment.authorId);
+            if(!userExits) throw new Error('user not exist');
+            const post = posts.some((post) => post.id === args.comment.postId);
+            if(!post) throw new Error('post not fount');
+            const id  =  uuid();
+            const addedComment  =  {
+                id,
+               ...args.comment
+            };
+            comments.push(addedComment);
+            return addedComment;
         }
     },
     Post: {
